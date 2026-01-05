@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kasir Mie Gacoan - POS Professional</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #receipt-print, #receipt-print * { visibility: visible; }
+            #receipt-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            @page { size: auto; margin: 0; }
+        }
+
+        .receipt-font { font-family: 'Courier New', Courier, monospace; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS (SVG REPLACEMENTS FOR LUCIDE) ---
+        const Icon = ({ name, className = "w-6 h-6" }) => {
+            const icons = {
+                dashboard: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>,
+                pos: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+                logout: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
+                plus: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
+                minus: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>,
+                printer: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            };
+            return icons[name] || null;
+        };
+
+        const MENU_ITEMS = [
+            { id: 1, name: 'Mie Suit', price: 10000, category: 'Mie', image: '🍜' },
+            { id: 2, name: 'Mie Gacoan LV 1-4', price: 11000, category: 'Mie', image: '🍜' },
+            { id: 3, name: 'Mie Gacoan LV 6-8', price: 12000, category: 'Mie', image: '🍜' },
+            { id: 4, name: 'Mie Hompimpa LV 1-4', price: 11000, category: 'Mie', image: '🍜' },
+            { id: 5, name: 'Siomay', price: 9000, category: 'Dimsum', image: '🥟' },
+            { id: 6, name: 'Udang Rambutan', price: 10000, category: 'Dimsum', image: '🍤' },
+            { id: 7, name: 'Udang Keju', price: 10000, category: 'Dimsum', image: '🧀' },
+            { id: 8, name: 'Es Gobak Sodor', price: 9000, category: 'Minuman', image: '🥤' },
+            { id: 9, name: 'Es Teklek', price: 6000, category: 'Minuman', image: '🥤' },
+            { id: 10, name: 'Es Sluku Bathok', price: 6000, category: 'Minuman', image: '🥤' },
+        ];
+
+        const INITIAL_ORDERS = [
+            { id: '#48', customer: 'Budi', table: 'Meja 7', total: 53000, status: 'Pending', time: '10:15' },
+            { id: '#47', customer: 'Siti', table: 'Meja 10', total: 18000, status: 'Completed', time: '10:05' },
+        ];
+
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [currentPage, setCurrentPage] = useState('dashboard');
+            const [cart, setCart] = useState([]);
+            const [allOrders, setAllOrders] = useState(INITIAL_ORDERS);
+            const [activeCategory, setActiveCategory] = useState('Semua');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [paymentModal, setPaymentModal] = useState(false);
+            const [paymentAmount, setPaymentAmount] = useState('');
+            const [showReceipt, setShowReceipt] = useState(false);
+            const [lastOrder, setLastOrder] = useState(null);
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                setIsLoggedIn(true);
+            };
+
+            const addToCart = (item) => {
+                const existing = cart.find(i => i.id === item.id);
+                if (existing) {
+                    setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
+                } else {
+                    setCart([...cart, { ...item, qty: 1 }]);
+                }
+            };
+
+            const updateQty = (id, delta) => {
+                setCart(cart.map(i => i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i).filter(i => i.qty > 0));
+            };
+
+            const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const tax = subtotal * 0.1;
+            const total = subtotal + tax;
+
+            const processCheckout = () => {
+                if (Number(paymentAmount) < total) {
+                    alert("Uang tidak cukup!");
+                    return;
+                }
+                const order = {
+                    id: '#' + Math.floor(100 + Math.random() * 900),
+                    customer: 'Pelanggan',
+                    table: 'Take Away',
+                    total: total,
+                    items: [...cart],
+                    cash: Number(paymentAmount),
+                    change: Number(paymentAmount) - total,
+                    status: 'Completed',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: new Date().toLocaleDateString()
+                };
+                setLastOrder(order);
+                setAllOrders([order, ...allOrders]);
+                setShowReceipt(true);
+                setPaymentModal(false);
+            };
+
+            const finishTransaction = () => {
+                setCart([]);
+                setPaymentAmount('');
+                setShowReceipt(false);
+                setCurrentPage('dashboard');
+            };
+
+            if (!isLoggedIn) {
+                return (
+                    <div className="min-h-screen bg-orange-600 flex items-center justify-center p-6">
+                        <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
+                            <div className="text-center mb-10">
+                                <h1 className="text-4xl font-black text-orange-600 italic tracking-tighter">MIE GACOAN</h1>
+                                <p className="text-gray-400 font-bold mt-2 uppercase text-xs tracking-widest">Kasir Log-In</p>
+                            </div>
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <input type="text" placeholder="Username" required className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-orange-500 outline-none transition-all font-bold" />
+                                <input type="password" placeholder="Password" required className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-orange-500 outline-none transition-all font-bold" />
+                                <button className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-orange-200 hover:bg-orange-700 active:scale-95 transition-all">MASUK SISTEM</button>
+                            </form>
+                        </div>
+                    </
