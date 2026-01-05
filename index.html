@@ -3,14 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Kasir Mie Gacoan - POS Professional</title>
+    <title>Gacoan POS Premium</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #f1f5f9;
+        }
+        .gacoan-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+        .custom-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: all 0.2s ease;
+        }
+        .custom-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -22,128 +38,371 @@
                 left: 0;
                 top: 0;
                 width: 100%;
-                margin: 0;
-                padding: 0;
             }
-            @page { size: auto; margin: 0; }
         }
-
-        .receipt-font { font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useMemo } = React;
 
-        // --- ICONS (SVG REPLACEMENTS FOR LUCIDE) ---
-        const Icon = ({ name, className = "w-6 h-6" }) => {
-            const icons = {
-                dashboard: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>,
-                pos: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
-                logout: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
-                plus: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
-                minus: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>,
-                printer: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-            };
-            return icons[name] || null;
-        };
-
-        const MENU_ITEMS = [
-            { id: 1, name: 'Mie Suit', price: 10000, category: 'Mie', image: '🍜' },
-            { id: 2, name: 'Mie Gacoan LV 1-4', price: 11000, category: 'Mie', image: '🍜' },
-            { id: 3, name: 'Mie Gacoan LV 6-8', price: 12000, category: 'Mie', image: '🍜' },
-            { id: 4, name: 'Mie Hompimpa LV 1-4', price: 11000, category: 'Mie', image: '🍜' },
-            { id: 5, name: 'Siomay', price: 9000, category: 'Dimsum', image: '🥟' },
-            { id: 6, name: 'Udang Rambutan', price: 10000, category: 'Dimsum', image: '🍤' },
-            { id: 7, name: 'Udang Keju', price: 10000, category: 'Dimsum', image: '🧀' },
-            { id: 8, name: 'Es Gobak Sodor', price: 9000, category: 'Minuman', image: '🥤' },
-            { id: 9, name: 'Es Teklek', price: 6000, category: 'Minuman', image: '🥤' },
-            { id: 10, name: 'Es Sluku Bathok', price: 6000, category: 'Minuman', image: '🥤' },
-        ];
-
-        const INITIAL_ORDERS = [
-            { id: '#48', customer: 'Budi', table: 'Meja 7', total: 53000, status: 'Pending', time: '10:15' },
-            { id: '#47', customer: 'Siti', table: 'Meja 10', total: 18000, status: 'Completed', time: '10:05' },
+        const MENU_DATA = [
+            { id: 1, name: 'Mie Suit', price: 10000, category: 'Mie', icon: '🍜', hasLevel: false },
+            { id: 2, name: 'Mie Gacoan', price: 11000, category: 'Mie', icon: '🍝', hasLevel: true },
+            { id: 3, name: 'Mie Hompimpa', price: 11000, category: 'Mie', icon: '🔥', hasLevel: true },
+            { id: 4, name: 'Siomay', price: 9000, category: 'Dimsum', icon: '🥟', hasLevel: false },
+            { id: 5, name: 'Udang Rambutan', price: 10000, category: 'Dimsum', icon: '🍤', hasLevel: false },
+            { id: 6, name: 'Udang Keju', price: 10000, category: 'Dimsum', icon: '🧀', hasLevel: false },
+            { id: 7, name: 'Lumpia Udang', price: 9000, category: 'Dimsum', icon: '🍱', hasLevel: false },
+            { id: 8, name: 'Es Gobak Sodor', price: 9000, category: 'Minuman', icon: '🥤', hasLevel: false },
+            { id: 9, name: 'Es Teklek', price: 6000, category: 'Minuman', icon: '🍹', hasLevel: false },
+            { id: 10, name: 'Es Sluku Bathok', price: 6000, category: 'Minuman', icon: '🍧', hasLevel: false },
+            { id: 11, name: 'Es Petak Umpet', price: 9000, category: 'Minuman', icon: '🍃', hasLevel: false },
+            { id: 12, name: 'Air Mineral', price: 4000, category: 'Minuman', icon: '💧', hasLevel: false },
         ];
 
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
-            const [currentPage, setCurrentPage] = useState('dashboard');
+            const [activeTab, setActiveTab] = useState('pos'); // pos, report
             const [cart, setCart] = useState([]);
-            const [allOrders, setAllOrders] = useState(INITIAL_ORDERS);
+            const [orders, setOrders] = useState([]);
             const [activeCategory, setActiveCategory] = useState('Semua');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [paymentModal, setPaymentModal] = useState(false);
-            const [paymentAmount, setPaymentAmount] = useState('');
-            const [showReceipt, setShowReceipt] = useState(false);
-            const [lastOrder, setLastOrder] = useState(null);
+            const [levelSelector, setLevelSelector] = useState(null);
+            const [checkoutModal, setCheckoutModal] = useState(false);
+            const [cashInput, setCashInput] = useState('');
+            const [receipt, setReceipt] = useState(null);
 
-            const handleLogin = (e) => {
-                e.preventDefault();
-                setIsLoggedIn(true);
-            };
+            const formatPrice = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
 
-            const addToCart = (item) => {
-                const existing = cart.find(i => i.id === item.id);
-                if (existing) {
-                    setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
-                } else {
-                    setCart([...cart, { ...item, qty: 1 }]);
-                }
-            };
-
-            const updateQty = (id, delta) => {
-                setCart(cart.map(i => i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i).filter(i => i.qty > 0));
-            };
-
-            const subtotal = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-            const tax = subtotal * 0.1;
+            const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.qty), 0), [cart]);
+            const tax = Math.round(subtotal * 0.1);
             const total = subtotal + tax;
 
-            const processCheckout = () => {
-                if (Number(paymentAmount) < total) {
-                    alert("Uang tidak cukup!");
-                    return;
+            const handleProductClick = (product) => {
+                if (product.hasLevel) {
+                    setLevelSelector(product);
+                } else {
+                    addToCart(product, 0);
                 }
-                const order = {
-                    id: '#' + Math.floor(100 + Math.random() * 900),
-                    customer: 'Pelanggan',
-                    table: 'Take Away',
-                    total: total,
-                    items: [...cart],
-                    cash: Number(paymentAmount),
-                    change: Number(paymentAmount) - total,
-                    status: 'Completed',
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: new Date().toLocaleDateString()
-                };
-                setLastOrder(order);
-                setAllOrders([order, ...allOrders]);
-                setShowReceipt(true);
-                setPaymentModal(false);
             };
 
-            const finishTransaction = () => {
+            const addToCart = (product, level) => {
+                const uniqueKey = `${product.id}-${level}`;
+                const existingIndex = cart.findIndex(item => item.uniqueKey === uniqueKey);
+
+                if (existingIndex > -1) {
+                    const newCart = [...cart];
+                    newCart[existingIndex].qty += 1;
+                    setCart(newCart);
+                } else {
+                    setCart([...cart, { ...product, uniqueKey, level, qty: 1 }]);
+                }
+                setLevelSelector(null);
+            };
+
+            const updateQty = (key, delta) => {
+                setCart(prev => prev.map(item => 
+                    item.uniqueKey === key ? { ...item, qty: Math.max(0, item.qty + delta) } : item
+                ).filter(item => item.qty > 0));
+            };
+
+            const finalizeTransaction = () => {
+                const cash = Number(cashInput);
+                if (cash < total) return alert("Uang tunai kurang!");
+
+                const newOrder = {
+                    id: `TRX-${Date.now().toString().slice(-6)}`,
+                    time: new Date().toLocaleString('id-ID'),
+                    items: [...cart],
+                    subtotal,
+                    tax,
+                    total,
+                    cash,
+                    change: cash - total
+                };
+
+                setOrders([newOrder, ...orders]);
+                setReceipt(newOrder);
+                setCheckoutModal(false);
+            };
+
+            const startNewOrder = () => {
                 setCart([]);
-                setPaymentAmount('');
-                setShowReceipt(false);
-                setCurrentPage('dashboard');
+                setCashInput('');
+                setReceipt(null);
             };
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen bg-orange-600 flex items-center justify-center p-6">
-                        <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md transform transition-all">
-                            <div className="text-center mb-10">
-                                <h1 className="text-4xl font-black text-orange-600 italic tracking-tighter">MIE GACOAN</h1>
-                                <p className="text-gray-400 font-bold mt-2 uppercase text-xs tracking-widest">Kasir Log-In</p>
+                    <div className="min-h-screen gacoan-gradient flex items-center justify-center p-4">
+                        <div className="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md text-center">
+                            <div className="text-7xl mb-4">🌶️</div>
+                            <h1 className="text-4xl font-black text-gray-800 italic mb-2 tracking-tight">MIE GACOAN</h1>
+                            <p className="text-gray-400 font-bold uppercase tracking-widest text-sm mb-10">Official POS System</p>
+                            <div className="space-y-4 mb-8">
+                                <input type="text" placeholder="Username" className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-2xl focus:border-orange-500 focus:bg-white transition-all outline-none font-bold" defaultValue="admin_gacoan" />
+                                <input type="password" placeholder="Password" className="w-full bg-gray-50 border-2 border-transparent p-4 rounded-2xl focus:border-orange-500 focus:bg-white transition-all outline-none font-bold" defaultValue="123456" />
                             </div>
-                            <form onSubmit={handleLogin} className="space-y-4">
-                                <input type="text" placeholder="Username" required className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-orange-500 outline-none transition-all font-bold" />
-                                <input type="password" placeholder="Password" required className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-orange-500 outline-none transition-all font-bold" />
-                                <button className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-orange-200 hover:bg-orange-700 active:scale-95 transition-all">MASUK SISTEM</button>
-                            </form>
+                            <button onClick={() => setIsLoggedIn(true)} className="w-full gacoan-gradient text-white py-5 rounded-2xl font-black text-xl shadow-lg hover:opacity-90 active:scale-95 transition-all">MASUK KASIR</button>
                         </div>
-                    </
+                    </div>
+                );
+            }
+
+            return (
+                <div className="h-screen flex flex-col md:flex-row overflow-hidden">
+                    {/* Side Navigation */}
+                    <nav className="w-full md:w-28 bg-white border-r flex md:flex-col items-center py-8 justify-between px-6 md:px-0 z-10">
+                        <div className="text-2xl font-black text-orange-600 italic">G!</div>
+                        <div className="flex md:flex-col gap-6">
+                            <button onClick={() => setActiveTab('pos')} className={`p-4 rounded-2xl transition-all ${activeTab === 'pos' ? 'bg-orange-100 text-orange-600 shadow-sm' : 'text-gray-300 hover:text-gray-500'}`}>
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            </button>
+                            <button onClick={() => setActiveTab('report')} className={`p-4 rounded-2xl transition-all ${activeTab === 'report' ? 'bg-orange-100 text-orange-600 shadow-sm' : 'text-gray-300 hover:text-gray-500'}`}>
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </button>
+                        </div>
+                        <button onClick={() => setIsLoggedIn(false)} className="p-4 text-gray-300 hover:text-red-500">
+                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7"></path></svg>
+                        </button>
+                    </nav>
+
+                    {/* Content Area */}
+                    <div className="flex-1 flex overflow-hidden">
+                        {activeTab === 'pos' ? (
+                            <div className="flex-1 flex flex-col md:flex-row w-full overflow-hidden">
+                                {/* Menu Section */}
+                                <div className="flex-1 p-8 overflow-y-auto no-scrollbar">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
+                                        <h2 className="text-3xl font-black text-gray-800">Daftar Menu</h2>
+                                        <div className="flex gap-2 p-1.5 bg-white rounded-2xl shadow-sm overflow-x-auto no-scrollbar w-full sm:w-auto">
+                                            {['Semua', 'Mie', 'Dimsum', 'Minuman'].map(cat => (
+                                                <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-6 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${activeCategory === cat ? 'bg-orange-500 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}>{cat}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {MENU_DATA.filter(m => activeCategory === 'Semua' || m.category === activeCategory).map(item => (
+                                            <div key={item.id} onClick={() => handleProductClick(item)} className="custom-card p-5 cursor-pointer border-2 border-transparent hover:border-orange-500">
+                                                <div className="bg-orange-50 w-full aspect-square rounded-2xl flex items-center justify-center text-6xl mb-4">{item.icon}</div>
+                                                <h4 className="font-bold text-gray-800 truncate mb-1">{item.name}</h4>
+                                                <p className="text-orange-600 font-black text-lg">{formatPrice(item.price)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Cart Sidebar */}
+                                <div className="w-full md:w-[420px] bg-white border-l shadow-2xl flex flex-col z-20">
+                                    <div className="p-8 border-b">
+                                        <h3 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+                                            Keranjang <span className="bg-orange-100 text-orange-600 text-xs px-2.5 py-1 rounded-full uppercase">{cart.length} Item</span>
+                                        </h3>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                                        {cart.length === 0 ? (
+                                            <div className="h-full flex flex-col items-center justify-center text-gray-300 opacity-60">
+                                                <div className="text-8xl mb-4">🥡</div>
+                                                <p className="font-bold">Pesanan Masih Kosong</p>
+                                            </div>
+                                        ) : (
+                                            cart.map(item => (
+                                                <div key={item.uniqueKey} className="flex gap-4 items-center animate-in slide-in-from-right-4">
+                                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-3xl">{item.icon}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-gray-800 text-sm truncate uppercase tracking-tight">{item.name}</p>
+                                                        <p className="text-xs font-bold text-orange-500">{item.level > 0 ? `Level ${item.level}` : 'Original'}</p>
+                                                        <p className="text-sm font-black text-gray-400">{formatPrice(item.price)}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3 bg-gray-100 p-1.5 rounded-xl">
+                                                        <button onClick={() => updateQty(item.uniqueKey, -1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-black hover:bg-orange-500 hover:text-white transition-all text-gray-600">-</button>
+                                                        <span className="font-bold w-4 text-center">{item.qty}</span>
+                                                        <button onClick={() => updateQty(item.uniqueKey, 1)} className="w-8 h-8 bg-white rounded-lg shadow-sm font-black hover:bg-orange-500 hover:text-white transition-all text-gray-600">+</button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    <div className="p-8 bg-gray-50 rounded-t-[40px] border-t">
+                                        <div className="space-y-3 mb-8">
+                                            <div className="flex justify-between text-gray-400 font-bold text-sm"><span>Subtotal</span><span>{formatPrice(subtotal)}</span></div>
+                                            <div className="flex justify-between text-gray-400 font-bold text-sm"><span>Pajak (10%)</span><span>{formatPrice(tax)}</span></div>
+                                            <div className="flex justify-between text-gray-800 font-black text-2xl pt-4 border-t-2 border-dashed"><span>Total Tagihan</span><span>{formatPrice(total)}</span></div>
+                                        </div>
+                                        <button 
+                                            disabled={cart.length === 0} 
+                                            onClick={() => setCheckoutModal(true)}
+                                            className="w-full gacoan-gradient text-white py-5 rounded-[20px] font-black text-xl shadow-xl hover:opacity-90 disabled:opacity-30 disabled:shadow-none active:scale-95 transition-all"
+                                        >
+                                            BAYAR SEKARANG
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Reports View */
+                            <div className="flex-1 p-10 overflow-y-auto no-scrollbar">
+                                <h2 className="text-4xl font-black text-gray-800 mb-10 italic">Ringkasan Laporan</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                                    <div className="bg-white p-8 rounded-[32px] shadow-sm border-b-8 border-orange-500">
+                                        <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Total Pendapatan</p>
+                                        <h3 className="text-3xl font-black text-gray-800">{formatPrice(orders.reduce((a,b) => a+b.total, 0))}</h3>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-[32px] shadow-sm border-b-8 border-slate-800">
+                                        <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Jumlah Transaksi</p>
+                                        <h3 className="text-3xl font-black text-gray-800">{orders.length}</h3>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-[32px] shadow-sm border-b-8 border-green-500">
+                                        <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-2">Produk Terjual</p>
+                                        <h3 className="text-3xl font-black text-gray-800">{orders.reduce((a,b) => a + b.items.length, 0)} <span className="text-sm font-normal text-gray-400 uppercase tracking-tighter">Porsi</span></h3>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-[32px] p-8 shadow-sm">
+                                    <h4 className="text-xl font-black mb-6">Riwayat Penjualan Terbaru</h4>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="text-gray-400 text-xs font-bold uppercase tracking-widest border-b">
+                                                    <th className="pb-4">No Transaksi</th>
+                                                    <th className="pb-4">Waktu</th>
+                                                    <th className="pb-4">Item</th>
+                                                    <th className="pb-4 text-right">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y">
+                                                {orders.map(order => (
+                                                    <tr key={order.id} className="text-gray-700 font-medium">
+                                                        <td className="py-4 font-black">{order.id}</td>
+                                                        <td className="py-4 text-sm">{order.time}</td>
+                                                        <td className="py-4 text-xs font-bold text-orange-600">{order.items.length} Menu</td>
+                                                        <td className="py-4 text-right font-black text-gray-900">{formatPrice(order.total)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {orders.length === 0 && <p className="text-center py-20 text-gray-300 font-bold italic">Belum ada transaksi hari ini.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Modal: Level Selector */}
+                    {levelSelector && (
+                        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-[40px] p-10 w-full max-w-sm text-center shadow-2xl animate-in zoom-in-95">
+                                <div className="text-8xl mb-6">{levelSelector.icon}</div>
+                                <h3 className="text-3xl font-black text-gray-800 mb-2">{levelSelector.name}</h3>
+                                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-8">Pilih Level Kepedasan</p>
+                                <div className="grid grid-cols-4 gap-4 mb-8">
+                                    {[0, 1, 2, 3, 4, 6, 8].map(l => (
+                                        <button 
+                                            key={l} 
+                                            onClick={() => addToCart(levelSelector, l)}
+                                            className={`h-16 rounded-2xl font-black text-xl transition-all border-b-4 ${l >= 4 ? 'bg-red-500 text-white border-red-700 shadow-lg shadow-red-200' : 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'}`}
+                                        >
+                                            {l}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button onClick={() => setLevelSelector(null)} className="text-gray-400 font-bold hover:text-gray-600 transition-colors uppercase text-xs tracking-widest underline decoration-2 underline-offset-8">Batalkan</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal: Checkout */}
+                    {checkoutModal && (
+                        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                            <div className="bg-white rounded-[40px] overflow-hidden w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95">
+                                <div className="gacoan-gradient p-10 text-white text-center">
+                                    <p className="text-xs font-bold opacity-80 uppercase tracking-widest mb-2">Total Pembayaran</p>
+                                    <h2 className="text-5xl font-black tracking-tight">{formatPrice(total)}</h2>
+                                </div>
+                                <div className="p-10">
+                                    <div className="mb-8">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-2">Uang Tunai (Cash)</label>
+                                        <input 
+                                            autoFocus
+                                            type="number" 
+                                            className="w-full bg-gray-50 border-2 border-gray-100 p-6 rounded-[24px] text-4xl font-black text-right outline-none focus:border-orange-500 transition-all shadow-inner"
+                                            value={cashInput}
+                                            onChange={(e) => setCashInput(e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 mb-10">
+                                        {[50000, 100000].map(v => (
+                                            <button key={v} onClick={() => setCashInput(v.toString())} className="bg-gray-100 py-4 rounded-xl font-black text-gray-500 hover:bg-orange-500 hover:text-white transition-all text-sm border-b-2 border-gray-200">Rp {v/1000}k</button>
+                                        ))}
+                                    </div>
+                                    <div className="flex flex-col gap-4">
+                                        <button onClick={finalizeTransaction} className="w-full bg-green-500 text-white py-5 rounded-[20px] font-black text-xl shadow-lg shadow-green-100 hover:bg-green-600 transition-all">CETAK TRANSAKSI</button>
+                                        <button onClick={() => setCheckoutModal(false)} className="w-full text-gray-300 font-bold py-2 uppercase text-[10px] tracking-[0.3em]">Kembali</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Receipt Backdrop */}
+                    {receipt && (
+                        <div className="fixed inset-0 bg-gray-900/98 z-[200] flex items-center justify-center p-4 overflow-y-auto">
+                            <div className="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl animate-in zoom-in-90 duration-300">
+                                <div id="receipt-print" className="text-center font-mono text-[11px]">
+                                    <div className="mb-6">
+                                        <h1 className="text-3xl font-black italic tracking-tighter text-gray-900">MIE GACOAN</h1>
+                                        <p className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase mt-1 italic">Customer Receipt</p>
+                                    </div>
+                                    
+                                    <div className="flex justify-between border-y border-dashed py-3 mb-6 text-gray-500 font-bold">
+                                        <span>#{receipt.id}</span>
+                                        <span>{receipt.time}</span>
+                                    </div>
+
+                                    <div className="space-y-4 mb-8 text-left">
+                                        {receipt.items.map(i => (
+                                            <div key={i.uniqueKey} className="flex justify-between">
+                                                <div className="flex-1 pr-4">
+                                                    <p className="text-gray-800 font-bold uppercase leading-tight">{i.name} {i.level > 0 ? `[LV ${i.level}]` : ''}</p>
+                                                    <p className="text-gray-400 mt-0.5">{i.qty} x {formatPrice(i.price)}</p>
+                                                </div>
+                                                <div className="text-gray-900 font-bold">{formatPrice(i.qty * i.price)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-2 border-t border-dashed pt-4 mb-8">
+                                        <div className="flex justify-between text-gray-500 font-medium"><span>Subtotal</span><span>{formatPrice(receipt.subtotal)}</span></div>
+                                        <div className="flex justify-between text-gray-500 font-medium"><span>Pajak Resto (10%)</span><span>{formatPrice(receipt.tax)}</span></div>
+                                        <div className="flex justify-between text-lg text-gray-900 font-black mt-2"><span>TOTAL</span><span>{formatPrice(receipt.total)}</span></div>
+                                        <div className="flex justify-between text-gray-500 pt-2"><span>Bayar Tunai</span><span>{formatPrice(receipt.cash)}</span></div>
+                                        <div className="flex justify-between text-orange-600 font-black italic"><span>Kembalian</span><span>{formatPrice(receipt.change)}</span></div>
+                                    </div>
+
+                                    <div className="text-center pt-4">
+                                        <p className="font-bold text-gray-400 italic">Terima kasih Gacoan!<br/>Nikmati Pedasmu!</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-10 flex flex-col gap-3 relative z-10">
+                                    <button onClick={() => window.print()} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black shadow-lg hover:bg-black active:scale-95 transition-all uppercase tracking-widest text-xs">Cetak Struk</button>
+                                    <button onClick={startNewOrder} className="w-full bg-gray-100 text-gray-400 py-4 rounded-2xl font-bold hover:bg-gray-200 transition-all uppercase tracking-widest text-xs">Transaksi Baru</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
